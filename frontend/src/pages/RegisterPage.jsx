@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import axios from 'axios';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { colors, fonts } from '../theme';
@@ -32,7 +32,6 @@ const countryToTimezone = {
   "Togo": "UTC", "Tunisia": "UTC+1", "Uganda": "UTC+3", "Zambia": "UTC+2", "Zimbabwe": "UTC+2"
 };
 
-// --- HELPER: GENERATE UTC OFFSETS FOR NON-AFRICAN (-12 to +14) ---
 const utcOffsets = Array.from({ length: 27 }, (_, i) => {
     const offset = i - 12;
     return offset >= 0 ? `+${offset}` : `${offset}`;
@@ -43,12 +42,9 @@ const RegisterPage = () => {
   const location = useLocation();
   const [loading, setLoading] = useState(false);
   
-  const program = location.state?.program || 'AiCE';
-  const cohort = location.state?.cohort || 'Cohort 17';
+  const program = location.state?.program || 'CS';
+  const cohort = location.state?.cohort || 'Cohort 1';
   const connectionType = location.state?.connectionType || 'find';
-
-  // --- SPECIAL CONDITION: AiCE Cohort 17 ---
-  const isAiCEC17 = program === 'AiCE' && cohort === 'Cohort 17';
 
   const [formData, setFormData] = useState({
     name: '', email: '', phone: '', country: '', timezone: '', language: '',
@@ -58,26 +54,13 @@ const RegisterPage = () => {
     kind_of_support: '', disclaimer_agree: false
   });
 
-  // Force specific values for AiCE Cohort 17
-  useEffect(() => {
-    if (isAiCEC17) {
-        setFormData(prev => ({
-            ...prev,
-            topic_module: "All Modules",
-            learning_preferences: "Dedicated Accountability Partner",
-            preferred_study_setup: "2"
-        }));
-    }
-  }, [isAiCEC17]);
-
   const handleChange = (e) => {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
     const name = e.target.name;
 
-    // Auto-fill timezone when country changes
     if (name === 'country') {
         if (value === 'Non-African') {
-            setFormData({ ...formData, country: value, timezone: '' }); // Clear it so they can pick
+            setFormData({ ...formData, country: value, timezone: '' });
         } else {
             const tz = countryToTimezone[value] || '';
             setFormData({ ...formData, country: value, timezone: tz });
@@ -88,10 +71,16 @@ const RegisterPage = () => {
   };
 
   const getModules = () => {
-    if (isAiCEC17) return ["All Modules"];
-    if (program === 'VA') return ["Week 1: Recap Quiz/Milestone", "Week 2: Recap Quiz/Milestone", "Week 3: Recap Quiz/Milestone", "Week 4: Recap Quiz/Milestone", "Week 5: Recap Quiz/Milestone", "Week 6: Recap Quiz/Milestone", "Week 7: Recap Quiz/Milestone", "Week 8: Recap Quiz/Milestone"];
-    if (program === 'AiCE') return ["Module 1: Stepping into the world of AI", "Module 2: Getting smart about AI", "Module 3: Using AI in the right way", "Module 4: Becoming more creative at work", "Module 5: Becoming a superhero at work", "Module 6: Empower your future"];
-    return Array.from({length: 12}, (_, i) => `Week ${i+1} Test/Milestone`);
+    // Basic placeholder modules for Cybersecurity
+    return [
+      "Module 1: Intro to Cybersecurity", 
+      "Module 2: Network Security", 
+      "Module 3: Ethical Hacking", 
+      "Module 4: Incident Response",
+      "Module 5: Threat Intelligence",
+      "Module 6: Cloud Security",
+      "Final Project"
+    ];
   };
 
   const handleSubmit = async (e) => {
@@ -114,7 +103,6 @@ const RegisterPage = () => {
         <h2 style={styles.header}>Register for {program} ({cohort})</h2>
         <p style={{textAlign:'center', marginBottom:'15px', color: '#666'}}>Looking for: <strong>{connectionType === 'find' ? 'Study Buddy' : connectionType}</strong></p>
 
-        {/* --- WARNING BOX --- */}
         <div style={styles.warningBox}>
           <h3 style={styles.warningTitle}>⚠️ Please Read Carefully</h3>
           <ul style={styles.warningList}>
@@ -147,30 +135,16 @@ const RegisterPage = () => {
               </div>
               <div style={styles.half}>
                   <label style={styles.label}>Time Zone</label>
-                  {/* NEW SMART TIMEZONE INPUT */}
                   {formData.country === 'Non-African' ? (
                       <div style={styles.tzWrapper}>
                           <span style={{ fontWeight: 'bold', color: '#555' }}>UTC</span>
-                          <select 
-                              style={styles.tzSelect} 
-                              name="timezone" 
-                              onChange={handleChange} 
-                              required 
-                              value={formData.timezone}
-                          >
+                          <select style={styles.tzSelect} name="timezone" onChange={handleChange} required value={formData.timezone}>
                               <option value="">--</option>
                               {utcOffsets.map(off => <option key={off} value={`UTC${off}`}>{off}</option>)}
                           </select>
                       </div>
                   ) : (
-                      <input 
-                          style={{...styles.input, backgroundColor: '#f5f5f5', color: '#888', cursor: 'not-allowed'}} 
-                          name="timezone" 
-                          value={formData.timezone} 
-                          readOnly 
-                          placeholder="Auto-filled by country" 
-                          required 
-                      />
+                      <input style={{...styles.input, backgroundColor: '#f5f5f5', color: '#888', cursor: 'not-allowed'}} name="timezone" value={formData.timezone} readOnly placeholder="Auto-filled by country" required />
                   )}
               </div>
            </div>
@@ -194,59 +168,38 @@ const RegisterPage = () => {
              <div style={styles.half}>
                 <label style={styles.label}>Current Week/Module</label>
                 <select style={styles.select} name="topic_module" onChange={handleChange} required value={formData.topic_module}>
-                    {!isAiCEC17 && <option value="">--Select--</option>}
+                    <option value="">--Select--</option>
                     {getModules().map(m => <option key={m} value={m}>{m}</option>)}
                 </select>
              </div>
              <div style={styles.half}>
                 <label style={styles.label}>Learning Preference</label>
                 <select style={styles.select} name="learning_preferences" onChange={handleChange} required value={formData.learning_preferences}>
-                {isAiCEC17 ? (
-                    <option value="Dedicated Accountability Partner">Dedicated Accountability Partner</option>
-                ) : (
-                    <>
-                        <option value="">--Select--</option>
-                        <option value="Deep dive">Deep dive</option>
-                        <option value="Co-work sessions">Co-work sessions</option>
-                        <option value="General program navigation">General program navigation</option>
-                        <option value="Flexible">Flexible</option>
-                    </>
-                )}
+                    <option value="">--Select--</option>
+                    <option value="Deep dive">Deep dive</option>
+                    <option value="Co-work sessions">Co-work sessions</option>
+                    <option value="General program navigation">General program navigation</option>
+                    <option value="Flexible">Flexible</option>
                 </select>
              </div>
            </div>
 
-           {/* --- UPDATED: GLOBAL PAIRING DROPDOWN --- */}
            <div>
              <label style={styles.label}>Open to Global Pairing?</label>
-             <select 
-                style={styles.select} 
-                name="open_to_global_pairing" 
-                onChange={handleChange} 
-                required 
-                value={formData.open_to_global_pairing}
-             >
+             <select style={styles.select} name="open_to_global_pairing" onChange={handleChange} required value={formData.open_to_global_pairing}>
                 <option value="No">No - Match within my Country/Module/Availability</option>
                 <option value="Yes">Yes - Match me with anyone (Faster)</option>
              </select>
-             <p style={{fontSize:'0.8rem', color:'#666', marginTop:'5px', marginBottom:'15px'}}>
-                *Select 'Yes' to relax constraints and find a match faster.
-             </p>
+             <p style={{fontSize:'0.8rem', color:'#666', marginTop:'5px', marginBottom:'15px'}}>*Select 'Yes' to relax constraints and find a match faster.</p>
            </div>
 
            {connectionType === 'find' && (
              <div>
                 <label style={styles.label}>Preferred Group Size</label>
-                {isAiCEC17 ? (
-                    <select style={styles.select} name="preferred_study_setup" value="2" disabled={true}>
-                        <option value="2">Pair (2 People)</option>
-                    </select>
-                ) : (
-                    <select style={styles.select} name="preferred_study_setup" onChange={handleChange} required>
-                        <option value="2">Pair (2 people)</option>
-                        <option value="3">Group of 3</option>
-                    </select>
-                )}
+                <select style={styles.select} name="preferred_study_setup" onChange={handleChange} required>
+                    <option value="2">Pair (2 people)</option>
+                    <option value="3">Group of 3</option>
+                </select>
              </div>
            )}
            
@@ -284,11 +237,8 @@ const styles = {
   label: { fontWeight: '600', fontSize: '0.9rem', color: colors.primary.berkeleyBlue, marginBottom: '5px', display: 'block' },
   input: { width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '1rem', boxSizing: 'border-box', outlineColor: colors.secondary.electricBlue },
   select: { width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '1rem', backgroundColor: 'white', boxSizing: 'border-box' },
-  
-  // NEW TIMEZONE STYLES
   tzWrapper: { display: 'flex', alignItems: 'center', background: 'white', border: '1px solid #ddd', borderRadius: '8px', paddingLeft: '12px', overflow: 'hidden' },
   tzSelect: { border: 'none', background: 'transparent', width: '100%', padding: '12px 5px', outline: 'none', fontSize: '1rem', cursor: 'pointer' },
-  
   submitButton: { padding: '15px', marginTop: '20px', background: `linear-gradient(45deg, ${colors.primary.iris}, ${colors.secondary.electricBlue})`, border: 'none', borderRadius: '30px', color: 'white', fontWeight: 'bold', fontSize: '1.1rem', cursor: 'pointer' },
   checkboxContainer: { display: 'flex', alignItems: 'center', marginTop: '10px' },
 };
