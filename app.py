@@ -42,9 +42,9 @@ s3 = boto3.client(
     region_name=AWS_DEFAULT_REGION
 )
 
-# === FILE NAMES ===
-CSV_OBJECT_KEY = 'cs_peer_matching_data_.csv' 
-FEEDBACK_OBJECT_KEY = 'cs_peer_finder_feedback.csv'
+# === NEW FILE NAMES FOR CYBERSECURITY ===
+CSV_OBJECT_KEY = 'cs-peerfinder.csv' 
+FEEDBACK_OBJECT_KEY = 'cs-peerfinder-feedback.csv'
 SESSION_FEEDBACK_OBJECT_KEY = 'cs_peer_session_feedback.csv'
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
 
@@ -61,17 +61,9 @@ def load_google_token(env_var_name):
         return None
 
 PROGRAM_CREDENTIALS = {
-    'VA': {
-        'email': os.environ.get('VA_EMAIL', 'vaprogram@alxafrica.com'),
-        'token': load_google_token('VA_GOOGLE_TOKEN')
-    },
-    'AiCE': {
-        'email': os.environ.get('AICE_EMAIL', 'aice@alxafrica.com'),
-        'token': load_google_token('AICE_GOOGLE_TOKEN')
-    },
-    'PF': {
-        'email': os.environ.get('PF_EMAIL', 'alxfoundations@alxafrica.com'),
-        'token': load_google_token('PF_GOOGLE_TOKEN')
+    'CS': {
+        'email': os.environ.get('CS_EMAIL', 'cybersecurity@alxafrica.com'),
+        'token': load_google_token('CS_GOOGLE_TOKEN')
     }
 }
 
@@ -86,8 +78,8 @@ def validate_registration(data):
         errors.append("Invalid email address format")
     if not re.match(r'^\+?[1-9]\d{1,14}$', data.get('phone', '').replace(' ', '')):
         errors.append("Invalid phone number. Use format +1234567890")
-    if data.get('program') not in ['VA', 'AiCE', 'PF']:
-        errors.append("Invalid program selected")
+    if data.get('program') not in ['CS']:
+        errors.append("Invalid program selected. Only CS is supported on this instance.")
     if data.get('connection_type') not in ['find', 'offer', 'need']:
         errors.append("Invalid connection type")
     return errors
@@ -112,7 +104,7 @@ def api_wrapper(f):
 # === GMAIL FUNCTIONS ===
 def get_gmail_service(program_name):
     if not program_name or program_name not in PROGRAM_CREDENTIALS:
-        program_name = 'PF' 
+        program_name = 'CS' 
     config = PROGRAM_CREDENTIALS[program_name]
     try:
         creds = Credentials.from_authorized_user_info(config['token'], SCOPES)
@@ -134,12 +126,11 @@ def send_email(to, subject, body, program_name, is_html=True):
         message['from'] = sender_email
         message['subject'] = subject
         
-        # Wrapped in a nice HTML structure
         html_body = f"""
         <html><body style="font-family: Arial, sans-serif; background-color: #f4f6f8; padding: 20px;">
         <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
             <div style="background-color: #091F40; padding: 20px; text-align: center;">
-                <h1 style="color: #ffffff; margin: 0; font-size: 24px;">ALX PeerFinder ({program_name})</h1>
+                <h1 style="color: #ffffff; margin: 0; font-size: 24px;">ALX PeerFinder (Cybersecurity)</h1>
             </div>
             <div style="padding: 30px; color: #333333; font-size: 16px; line-height: 1.6;">
                 {body}
@@ -156,7 +147,6 @@ def send_email(to, subject, body, program_name, is_html=True):
         logger.error(f"Email Error: {str(e)}")
         return False
 
-# NEW: Helper function to generate and send group match emails with WhatsApp links
 def notify_group_match(df, group_id):
     grp = df[df['group_id'] == group_id]
     
@@ -165,7 +155,6 @@ def notify_group_match(df, group_id):
         
         for _, peer in grp.iterrows():
             if peer['id'] != current_user['id']:
-                # Clean phone number for WhatsApp link (remove spaces, +, and dashes)
                 clean_phone = re.sub(r'\D', '', str(peer['phone']))
                 wa_link = f"https://wa.me/{clean_phone}"
                 
@@ -264,7 +253,7 @@ def availability_match(a1, a2):
 @app.route('/', methods=['GET'])
 @api_wrapper
 def health():
-    return jsonify({"status": "active", "version": "6.0-Validated"})
+    return jsonify({"status": "active", "version": "CS-1.0"})
 
 @app.route('/api/register', methods=['POST'])
 @api_wrapper
@@ -281,7 +270,7 @@ def register():
 
     df = download_csv()
     
-    existing_mask = ((df['email'] == email) | (df['phone'] == phone)) & (df['connection_type'] == data['connection_type'])
+    existing_mask = (df['email'] == email) | (df['phone'] == phone)
     if not df[existing_mask].empty:
         idx = df[existing_mask].index[0]
         existing = df.loc[idx]
@@ -330,7 +319,6 @@ def register():
     df = pd.concat([df, pd.DataFrame([new_user])], ignore_index=True)
     upload_csv(df)
     
-    # NEW FORMATTED WAITING EMAIL
     wait_body = f"""
     <h2 style="color: #091F40; margin-top: 0;">You're in Queue! ⏳</h2>
     Hi <strong>{data['name']}</strong>,<br/><br/>
@@ -347,15 +335,12 @@ def register():
     
     return jsonify({"success": True, "user_id": new_id})
 
-
 @app.route('/api/status/<identifier>', methods=['GET'])
 @api_wrapper
 def status(identifier):
     df = download_csv()
     ident_lower = identifier.strip().lower()
-    
-    # UPDATE: Sort by timestamp so email login grabs the most recent profile
-    user_rows = df[(df['id'] == identifier.strip()) | (df['email'].str.lower() == ident_lower)].sort_values(by='timestamp', ascending=False)
+    user_rows = df[(df['id'] == identifier.strip()) | (df['email'].str.lower() == ident_lower)]
     
     if user_rows.empty: 
         return jsonify({"error": "Not found"}), 404
@@ -372,7 +357,6 @@ def status(identifier):
         res['group'] = grp[['name', 'email', 'phone', 'connection_type']].fillna("").to_dict('records')
         
     return jsonify(res)
-
 
 @app.route('/api/match', methods=['POST'])
 @api_wrapper
@@ -455,7 +439,7 @@ def match():
 
     if updated:
         upload_csv(df)
-        notify_group_match(df, gid) # Send new dynamic emails!
+        notify_group_match(df, gid)
         return jsonify({'matched': True, 'group_id': gid})
     
     upload_csv(df)
@@ -467,7 +451,7 @@ def match():
 def leave_group(user_id=None):
     data = request.get_json() or {}
     target_id = user_id or data.get('user_id')
-    delete_profile = data.get('delete_profile', False) # NEW: Check if they want to be deleted
+    delete_profile = data.get('delete_profile', False)
     
     df = download_csv()
     user_rows = df[df['id'] == target_id]
@@ -476,12 +460,10 @@ def leave_group(user_id=None):
     idx = user_rows.index[0]
     old_group_id = df.at[idx, 'group_id'] 
     
-    # 1. Unpair the user
     df.at[idx, 'matched'] = False
     df.at[idx, 'group_id'] = ''
     df.at[idx, 'unpair_reason'] = data.get('reason', 'User Requested')
     
-    # 2. Ghost Group Logic (Put the remaining partner back in queue)
     if old_group_id:
         remaining_members = df[df['group_id'] == old_group_id]
         if len(remaining_members) == 1:
@@ -489,7 +471,6 @@ def leave_group(user_id=None):
             df.at[rem_idx, 'matched'] = False
             df.at[rem_idx, 'group_id'] = ''
             
-    # 3. NEW: If they chose "Completely delete me", drop their row entirely
     if delete_profile:
         df = df.drop(index=idx)
         
@@ -564,7 +545,7 @@ def random_pair():
     df.loc[idx_list, 'matched_timestamp'] = iso
     upload_csv(df)
     
-    notify_group_match(df, gid) # Send new dynamic emails
+    notify_group_match(df, gid)
         
     return jsonify({"success": True, "message": "Matched!"})
 
@@ -590,7 +571,7 @@ def manual_pair():
     df.loc[rows.index, 'matched_timestamp'] = iso
     upload_csv(df)
     
-    notify_group_match(df, gid) # Send new dynamic emails
+    notify_group_match(df, gid)
         
     return jsonify({"success": True, "message": "Paired!"})
 
@@ -621,7 +602,7 @@ def submit_peer_session_feedback():
         'id': str(uuid.uuid4()),
         'timestamp': datetime.now(timezone.utc).isoformat(),
         'email': data.get('email', ''),
-        'peer_email': data.get('peer_email', ''), # <--- ADD THIS LINE
+        'peer_email': data.get('peer_email', ''),
         'program': data.get('program', ''),
         'session_happened': data.get('session_happened', ''),
         'no_session_reason': data.get('no_session_reason', ''),
@@ -658,7 +639,7 @@ def dl_session_feedback():
         return jsonify({"error": "Unauthorized"}), 401
     return Response(download_csv(SESSION_FEEDBACK_OBJECT_KEY).to_csv(index=False), mimetype='text/csv')
 
-
+# --- LEADERBOARD ROUTE ---
 @app.route('/api/leaderboard', methods=['GET'])
 @api_wrapper
 def get_leaderboard():
@@ -668,42 +649,32 @@ def get_leaderboard():
         
     df_users = download_csv(CSV_OBJECT_KEY)
     
-    # Clean data
     df_feedback['peer_email'] = df_feedback['peer_email'].astype(str).str.strip().str.lower()
     df_feedback['peer_rating'] = pd.to_numeric(df_feedback['peer_rating'], errors='coerce').fillna(0)
     df_feedback['session_rating'] = pd.to_numeric(df_feedback['session_rating'], errors='coerce').fillna(0)
     
-    # --- THE MAGIC FILTER --- 
-    # ONLY rank based on feedback submitted by a "HelpSeeker" (meaning the peer was the Volunteer!)
     valid_feedback = df_feedback[(df_feedback['peer_email'] != '') & (df_feedback['role'] == 'HelpSeeker')].copy()
     
-    # --- POINT CALCULATION LOGIC ---
     def calculate_points(row):
-        score = row['peer_rating'] + row['session_rating'] # Up to 10 points (5 stars each)
-        
+        score = row['peer_rating'] + row['session_rating']
         if str(row.get('h_respected')).strip().lower() == 'yes':
             score += 5
-            
         clarified = str(row.get('h_clarified')).strip().lower()
         if clarified == 'yes':
             score += 5
         elif clarified == 'partially':
             score += 2
-            
         if str(row.get('h_outcome')).strip().lower() == 'submit the deliverable':
             score += 5
-            
         return score
 
     if not valid_feedback.empty:
         valid_feedback['points'] = valid_feedback.apply(calculate_points, axis=1)
-        # Group by the volunteer's email and sum their total points
         leaders = valid_feedback.groupby('peer_email')['points'].sum().reset_index()
-        leaders = leaders.sort_values(by='points', ascending=False).head(10) # Top 10
+        leaders = leaders.sort_values(by='points', ascending=False).head(10)
     else:
         return jsonify({"success": True, "leaderboard": []})
     
-    # Map the emails back to real names
     leaderboard = []
     for _, row in leaders.iterrows():
         p_email = row['peer_email']
@@ -718,9 +689,6 @@ def get_leaderboard():
         leaderboard.append({"name": name, "score": score})
         
     return jsonify({"success": True, "leaderboard": leaderboard})
-    
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000, host='0.0.0.0')
-
-
