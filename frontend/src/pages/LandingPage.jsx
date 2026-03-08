@@ -121,10 +121,9 @@ const LandingPage = () => {
   const [selectedProgram, setSelectedProgram] = useState(null);
   const [selectedCohort, setSelectedCohort] = useState(null);
 
+  // --- CYBERSECURITY ONLY ---
   const programs = [
-    { id: 'VA', name: 'Virtual Assistant', icon: '💻', cohorts: ['Cohort 14'] },
-    { id: 'AiCE', name: 'AI Career Essentials', icon: '🤖', cohorts: ['Cohort 17'] },
-    { id: 'PF', name: 'Prof. Foundations', icon: '🚀', cohorts: ['Cohort 12'] },
+    { id: 'CS', name: 'Cybersecurity', icon: '🛡️', cohorts: ['Cohort 1', 'Cohort 2'] },
   ];
 
   // Feedback State
@@ -145,12 +144,6 @@ const LandingPage = () => {
 
   const handleOptionSelect = (type) => {
     navigate('/register', { state: { program: selectedProgram.id, cohort: selectedCohort, connectionType: type } });
-  };
-
-  const isRestrictedCohort = () => {
-    if (selectedProgram?.id === 'VA' && selectedCohort === 'Cohort 14') return true;
-    if (selectedProgram?.id === 'AiCE' && selectedCohort === 'Cohort 18') return true;
-    return false;
   };
 
   return (
@@ -174,9 +167,9 @@ const LandingPage = () => {
               <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => navigate('/status/check')} style={styles.secondaryBtn}>Check Status</motion.button>
             </div>
           </motion.div>
-          <motion.div initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8, delay: 0.2 }} style={styles.videoWrapper}>
+          {<motion.div initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8, delay: 0.2 }} style={styles.videoWrapper}>
             <iframe src="https://www.youtube.com/embed/78uUL2WFo0k" title="PeerFinder Walkthrough" style={styles.iframe} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>
-          </motion.div>
+          </motion.div>}
         </div>
       </div>
 
@@ -220,13 +213,8 @@ const LandingPage = () => {
                   <h2 style={{color: colors.primary.berkeleyBlue}}>Options</h2>
                   <div style={styles.modalGrid}>
                     <OptionCard title="Find a Study Buddy 🤝" desc="Accountability Partner / Group" color={colors.primary.iris} onClick={() => handleOptionSelect('find')} />
-                    
-                    {!isRestrictedCohort() && (
-                      <>
-                        <OptionCard title="Offer Support 💁‍♀️" desc="Volunteer Mode ⭐⭐⭐ " color={colors.primary.springGreen} textColor={colors.primary.berkeleyBlue} onClick={() => handleOptionSelect('offer')} />
-                        <OptionCard title="Request Support 🆘" desc="I am Behind / Struggling" color={colors.secondary.tomato} onClick={() => handleOptionSelect('need')} />
-                      </>
-                    )}
+                    <OptionCard title="Offer Support 💁‍♀️" desc="Volunteer Mode ⭐⭐⭐ " color={colors.primary.springGreen} textColor={colors.primary.berkeleyBlue} onClick={() => handleOptionSelect('offer')} />
+                    <OptionCard title="Request Support 🆘" desc="I am Behind / Struggling" color={colors.secondary.tomato} onClick={() => handleOptionSelect('need')} />
                   </div>
                 </>
               )}
@@ -235,7 +223,6 @@ const LandingPage = () => {
         )}
       </AnimatePresence>
 
-      {/* NEW ANIMATED LEADERBOARD */}
       <Leaderboard />
 
       <div style={styles.infoSection}>
@@ -248,17 +235,17 @@ const LandingPage = () => {
         © 2026 Peer Finder. All rights reserved.
       </footer>
 
-      {/* --- FLOATING BUTTONS --- */}
       <button onClick={() => setShowFeedback(true)} style={styles.feedbackBtn}>Rate the Peer Finder ⭐</button>
       
       <motion.button 
-        whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} 
-        onClick={() => navigate('/peer-feedback')} style={styles.peerFeedbackBtn}
+        whileHover={{ scale: 1.05 }} 
+        whileTap={{ scale: 0.95 }} 
+        onClick={() => navigate('/peer-feedback')} 
+        style={styles.peerFeedbackBtn}
       >
-        IMPORTANT🌟 Rate Your Peer Session
+        IMPORTANT🌟 Rate Your Peer(s) / Session
       </motion.button>
       
-      {/* Tool Feedback Modal */}
       {showFeedback && (
         <div style={styles.modalOverlay} onClick={() => setShowFeedback(false)}>
           <div style={styles.modalCard} onClick={e => e.stopPropagation()}>
@@ -296,9 +283,8 @@ const OptionCard = ({ title, desc, color, textColor='white', onClick }) => (
 const styles = {
   container: { minHeight: '100vh', background: colors.primary.berkeleyBlue, fontFamily: fonts.main, position:'relative' },
   navbar: { display: 'flex', justifyContent: 'space-between', padding: '1rem 2rem', background: 'white', zIndex: 100, position:'relative' },
-  navLeft: { display: 'flex', alignItems: 'center' },
   logoText: { color: colors.primary.iris, fontWeight: '700', fontSize: '1.5rem' },
-  adminLink: { color: colors.primary.iris, textDecoration: 'none', fontWeight: '600', display: 'flex', alignItems: 'center' },
+  adminLink: { color: colors.primary.iris, textDecoration: 'none', fontWeight: '600' },
   heroSection: { minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', position:'relative', overflow:'hidden' },
   slideshowContainer: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' },
   slide: { position: 'absolute', width: '100%', height: '100%' },
@@ -321,7 +307,7 @@ const styles = {
   modalGrid: { display: 'flex', flexDirection: 'column', gap: '15px' },
   optionBtn: { padding: '15px', borderRadius: '10px', border: '1px solid #ddd', background: '#f9f9f9', fontSize: '1.1rem', fontWeight: '600', color: colors.primary.berkeleyBlue, cursor: 'pointer' },
   optionCard: { padding: '15px', borderRadius: '10px', border: 'none', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' },
-  backLink: { background: 'none', border: 'none', color: '#666', cursor: 'pointer', marginBottom: '10px', fontSize: '0.9rem', alignSelf: 'flex-start' },
+  backLink: { background: 'none', border: 'none', color: '#666', cursor: 'pointer', marginBottom: '10px', fontSize: '0.9rem' },
   programBtn: { width: '140px', height: '140px', borderRadius: '15px', border: '1px solid #eee', background: 'white', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', fontWeight: 'bold', color: colors.primary.berkeleyBlue, fontSize: '0.9rem', textAlign: 'center', padding: '10px' },
   infoSection: { padding: '4rem 2rem', background: '#d1dbf8', color: colors.primary.berkeleyBlue, textAlign: 'center' },
   infoTitle: { fontSize: '1.5rem', fontWeight: '700', marginBottom: '1rem' },
@@ -329,10 +315,7 @@ const styles = {
   footer: { background: colors.primary.berkeleyBlue, color: 'rgba(255,255,255,0.6)', textAlign: 'center', padding: '2rem', fontSize: '0.9rem', borderTop: '1px solid rgba(255,255,255,0.1)' },
   feedbackBtn: { position: 'fixed', bottom: '20px', left: '20px', padding: '10px 20px', borderRadius: '30px', border: 'none', background: colors.primary.iris, color: 'white', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', gap: '5px', zIndex: 100 },
   peerFeedbackBtn: { position: 'fixed', bottom: '20px', right: '20px', padding: '12px 24px', borderRadius: '30px', border: 'none', background: colors.secondary.tomato, color: 'white', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', gap: '8px', zIndex: 100 },
-
-  // --- LEADERBOARD STYLES ---
   leaderboardSection: { padding: '4rem 2rem', background: 'white', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' },
-  // UPDATED: Added marginTop to create space between text and podiums
   podiumContainer: { display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: '15px', height: '300px', marginTop: '40px', marginBottom: '30px', maxWidth: '600px', width: '100%' },
   podiumBlockWrap: { display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, position: 'relative' },
   avatar: { fontSize: '3rem', marginBottom: '10px' },
@@ -344,9 +327,3 @@ const styles = {
 };
 
 export default LandingPage;
-
-
-
-
-
-
